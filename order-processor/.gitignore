@@ -1,0 +1,35 @@
+# Binaries for programs and plugins
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Test binaries
+*_test
+
+# Go workspace and module cache
+.go/
+go.work.sum
+go.sum
+
+# Dependency caches
+vendor/
+pkg/
+
+# Generated files
+# Add any specific generated files or directories here
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# IDE-specific files
+.idea/
+.vscode/
+*.swp
+*.bak
+*.log
+
+# Environment variables and sensitive data
+.env
+*.envrc
