@@ -46,7 +46,7 @@ sleep 15   # Wait for boot
 ### 3.2 Apply Terraform
 ```bash
 cd ../infra
-rm -rf .terraform* terraform.tfstate*  # Clean slate
+#rm -rf .terraform* terraform.tfstate*  # Optional to Clean slate
 terraform init
 terraform apply -var-file=dev.tfvars -auto-approve
 
@@ -126,6 +126,7 @@ curl http://localhost:9090/metrics | grep orders_processor
 ### 4.1 Order API 
 ```bash
 cd order-api
+python -m venv venv
 source .venv/bin/activate
 pytest -v
 ```
@@ -133,7 +134,9 @@ pytest -v
 ### 4.2 Order Processor
 ```bash
 cd order-processor
-go test ./internal/processor -v
+go mod tidy
+go build ./...
+go test ./...
 ```
 
 ## 5 Follow Ups & Extensions

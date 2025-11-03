@@ -2,7 +2,7 @@ from pydantic_settings import BaseSettings
 from typing import Literal
 
 class Settings(BaseSettings):
-    app_name: str = "FlashSale Order API"
+    app_name: str = "Order Processing API"
     environment: Literal["local", "dev", "prod"] = "local"
     log_level: str = "INFO"
 
