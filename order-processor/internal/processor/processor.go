@@ -10,6 +10,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
@@ -45,28 +46,33 @@ type Processor struct {
 
 func NewProcessor(ctx context.Context) (*Processor, error) {
 	endpoint := os.Getenv("AWS_ENDPOINT_URL")
+
+	// Build AWS config with optional custom endpoint
 	cfg, err := config.LoadDefaultConfig(ctx,
 		config.WithRegion("us-east-1"),
-		config.WithCredentialsProvider(aws.CredentialsProviderFunc(func(ctx context.Context) (aws.Credentials, error) {
-			return aws.Credentials{
+		config.WithCredentialsProvider(credentials.StaticCredentialsProvider{
+			Value: aws.Credentials{
 				AccessKeyID: "test", SecretAccessKey: "test", Source: "mock",
-			}, nil
-		})),
+			},
+		}),
 	)
 	if err != nil {
 		return nil, err
 	}
 
+	// Only override endpoint if provided (e.g., LocalStack)
 	if endpoint != "" {
-		cfg.EndpointResolverWithOptions = aws.EndpointResolverWithOptionsFunc(func(service, region string, options ...interface{}) (aws.Endpoint, error) {
-			return aws.Endpoint{URL: endpoint}, nil
-		})
+		cfg.EndpointResolverWithOptions = aws.EndpointResolverWithOptionsFunc(
+			func(service, region string, options ...interface{}) (aws.Endpoint, error) {
+				return aws.Endpoint{URL: endpoint}, nil
+			},
+		)
 	}
 
 	sqsClient := sqs.NewFromConfig(cfg)
 	ddbClient := dynamodb.NewFromConfig(cfg)
 
-	// Prometheus
+	// Prometheus metric
 	ordersProcessed := prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "orders_processed_total",
@@ -80,7 +86,9 @@ func NewProcessor(ctx context.Context) (*Processor, error) {
 	go func() {
 		http.Handle("/metrics", promhttp.Handler())
 		log.Info().Msg("Prometheus metrics on :9090/metrics")
-		http.ListenAndServe(":9090", nil)
+		if err := http.ListenAndServe(":9090", nil); err != nil {
+			log.Error().Err(err).Msg("failed to start metrics server")
+		}
 	}()
 
 	return &Processor{

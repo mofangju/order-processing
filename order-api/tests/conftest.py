@@ -1,6 +1,7 @@
+import pytest
 from fastapi.testclient import TestClient
-from app.main import app      
-import pytest                 
+
+from app.main import app
 
 
 @pytest.fixture(scope="session")
@@ -14,8 +15,5 @@ def fake_handler(monkeypatch):
     def handle_order(ddb, order_id, order_in, sqs, user_id):
         signed_url = "http://signed_url.com"
         return signed_url
-    
-    monkeypatch.setattr(
-        "app.main.handle_order",
-        handle_order
-    )
+
+    monkeypatch.setattr("app.main.handle_order", handle_order)

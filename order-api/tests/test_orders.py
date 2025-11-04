@@ -11,7 +11,7 @@ def test_create_order_success(client, fake_handler):
     response = client.post(
         "/orders",
         headers={"Authorization": f"Bearer {token}"},
-        json={"user_id": "u123", "amount": 999}
+        json={"user_id": "u123", "amount": 999},
     )
     assert response.status_code == 202
     data = response.json()
@@ -20,14 +20,16 @@ def test_create_order_success(client, fake_handler):
     assert data["status"] == "PENDING"
     assert "requested_at" in data
 
+
 def test_create_order_unauthorized(client):
     response = client.post("/orders", json={"user_id": "u123", "amount": 999})
     assert response.status_code == 403
+
 
 def test_create_order_invalid_token(client):
     response = client.post(
         "/orders",
         headers={"Authorization": "Bearer invalid"},
-        json={"user_id": "u123", "amount": 999}
+        json={"user_id": "u123", "amount": 999},
     )
     assert response.status_code == 401

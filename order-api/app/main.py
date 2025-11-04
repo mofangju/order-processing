@@ -1,14 +1,16 @@
 import uuid
 from datetime import datetime, timezone
-from fastapi import FastAPI, Depends, Request
+
+from fastapi import Depends, FastAPI, Request
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
-from app.handler import handle_order
-from config import settings
-from app.schemas import OrderIn, OrderOut, Token
-from app.auth import create_access_token, get_current_user
-from app.deps import set_request_id, get_request_id, get_sqs_client, get_ddb_client, logger
 
+from app.auth import create_access_token, get_current_user
+from app.deps import (get_ddb_client, get_request_id, get_sqs_client, logger,
+                      set_request_id)
+from app.handler import handle_order
+from app.schemas import OrderIn, OrderOut, Token
+from config import settings
 
 # App
 app = FastAPI(
@@ -17,13 +19,14 @@ app = FastAPI(
     version="2.0.0",
     openapi_url="/openapi.json",
     docs_url="/docs",
-    redoc_url="/redoc"
+    redoc_url="/redoc",
 )
 
 # Rate limiter
 limiter = Limiter(key_func=lambda request: get_current_user(request))
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
 
 # Middleware
 @app.middleware("http")
@@ -33,20 +36,24 @@ async def add_request_id(request: Request, call_next):
     response.headers["X-Request-ID"] = get_request_id()
     return response
 
+
 # Health
 @app.get("/health")
 async def health():
     return {"status": "healthy", "env": settings.environment}
 
+
 @app.get("/ready")
 async def ready():
     return {"status": "ready"}
+
 
 # Auth
 @app.post("/login", response_model=Token)
 async def login(form_data: OrderIn):  # Reuse for demo
     token = create_access_token(form_data.user_id)
     return Token(access_token=token)
+
 
 # Orders
 @app.post("/orders", response_model=OrderOut, status_code=202)
@@ -55,17 +62,15 @@ async def create_order(
     request: Request,
     order_in: OrderIn,
     user_id: str = Depends(get_current_user),
-    sqs = Depends(get_sqs_client),
-    ddb = Depends(get_ddb_client)
+    sqs=Depends(get_sqs_client),
+    ddb=Depends(get_ddb_client),
 ):
     order_id = str(uuid.uuid4())
     requested_at = datetime.now(timezone.utc).isoformat()
 
     signed_url = handle_order(ddb, order_id, order_in, sqs, user_id)
 
-    logger.info(f"Order created | order_id={order_id} | user_id={user_id} | amount={order_in.amount}")
-    return OrderOut(
-        order_id=order_id,
-        poll_url=signed_url,
-        requested_at=requested_at
+    logger.info(
+        f"Order created | order_id={order_id} | user_id={user_id} | amount={order_in.amount}"
     )
+    return OrderOut(order_id=order_id, poll_url=signed_url, requested_at=requested_at)
