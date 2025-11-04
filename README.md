@@ -26,9 +26,9 @@ flowchart TD
 | Async Polling | Client polls DynamoDB via signed URL |
 | Rate Limiting | `100/minute` per user |
 | Observability | Request ID, structured logs, Prometheus |
-| Health Checks | `/health`, `/ready` |
+| Health Checks | `/health`, `/ready` (API + Processor) |
 | OpenAPI Docs | `/docs`, `/redoc`, `/openapi.json` |
-| Go Processor | Polls SQS, writes to DynamoDB, exports metrics |
+| Go Processor | Polls SQS, writes to DynamoDB, exports metrics at `/metrics` |
 | Unit Tests | `pytest` + `go test` (100% coverage) |
 
 ---
@@ -85,8 +85,8 @@ export SQS_QUEUE_URL=$(cd ../infra && terraform output -raw sqs_queue_url)
 export DDB_TABLE=$(cd ../infra && terraform output -raw dynamodb_table)
 export AWS_ENDPOINT_URL=http://host.docker.internal:4566
 
-# 3. Run
-docker stop order-processor && docker rm order-processor
+# 3. Run (stops and removes existing container if it exists, then starts new one)
+docker rm -f order-processor 2>/dev/null || true; \
 docker run -d --name order-processor \
   -e SQS_QUEUE_URL="$SQS_QUEUE_URL" \
   -e DDB_TABLE="$DDB_TABLE" \
@@ -110,16 +110,23 @@ curl -X POST http://localhost:8000/orders \
   -H "Content-Type: application/json" \
   -d '{"user_id":"u123","amount":999}'
 
-# 3. Check Prometheus
+# 3. Check processor health
+curl http://localhost:9090/health
+# → {"status":"healthy"}
+
+# 4. Check Prometheus metrics
 curl http://localhost:9090/metrics | grep orders_processor
 # → orders_processed_total{env="local",status="success"} 1
 ```  
 
-### 3.6 API Docs:
-- Swagger: http://localhost:8000/docs
-- Redoc: http://localhost:8000/redoc
-- OpenAPI JSON: http://localhost:8000/openapi.json
-- Prometheus: http://localhost:9090
+### 3.6 API Docs & Monitoring:
+- **Order API Swagger**: http://localhost:8000/docs
+- **Order API Redoc**: http://localhost:8000/redoc
+- **Order API OpenAPI JSON**: http://localhost:8000/openapi.json
+- **Order API Health**: http://localhost:8000/health
+- **Order Processor Metrics**: http://localhost:9090/metrics
+- **Order Processor Health**: http://localhost:9090/health
+- **Order Processor Readiness**: http://localhost:9090/ready
 
 ## 4 Unit Test
 
