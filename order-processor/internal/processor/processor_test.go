@@ -18,7 +18,9 @@ import (
 )
 
 // ────────────────────── MOCKS ──────────────────────
-type MockSQSClient struct{ mock.Mock }
+type MockSQSClient struct {
+	mock.Mock
+}
 
 func (m *MockSQSClient) ReceiveMessage(
 	ctx context.Context,
@@ -38,7 +40,9 @@ func (m *MockSQSClient) DeleteMessage(
 	return args.Get(0).(*sqs.DeleteMessageOutput), args.Error(1)
 }
 
-type MockDynamoDBClient struct{ mock.Mock }
+type MockDynamoDBClient struct {
+	mock.Mock
+}
 
 func (m *MockDynamoDBClient) PutItem(
 	ctx context.Context,

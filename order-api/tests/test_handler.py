@@ -7,7 +7,6 @@ from botocore.exceptions import BotoCoreError, ClientError
 
 from app.handler import handle_order
 from app.schemas import OrderIn
-from config import settings
 
 
 @pytest.fixture

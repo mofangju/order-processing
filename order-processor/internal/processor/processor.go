@@ -158,17 +158,21 @@ func NewProcessor(ctx context.Context) (*Processor, error) {
 		return nil, fmt.Errorf("failed to load AWS config: %w", err)
 	}
 
-	// Set custom endpoint for LocalStack
+	// Set custom endpoint for LocalStack using service-specific options
+	var sqsClient *sqs.Client
+	var ddbClient *dynamodb.Client
 	if endpoint != "" {
-		cfg.EndpointResolverWithOptions = aws.EndpointResolverWithOptionsFunc(
-			func(service, region string, options ...interface{}) (aws.Endpoint, error) {
-				return aws.Endpoint{URL: endpoint}, nil
-			},
-		)
+		// Use BaseEndpoint option for service-specific endpoint resolution
+		sqsClient = sqs.NewFromConfig(cfg, func(o *sqs.Options) {
+			o.BaseEndpoint = aws.String(endpoint)
+		})
+		ddbClient = dynamodb.NewFromConfig(cfg, func(o *dynamodb.Options) {
+			o.BaseEndpoint = aws.String(endpoint)
+		})
+	} else {
+		sqsClient = sqs.NewFromConfig(cfg)
+		ddbClient = dynamodb.NewFromConfig(cfg)
 	}
-
-	sqsClient := sqs.NewFromConfig(cfg)
-	ddbClient := dynamodb.NewFromConfig(cfg)
 
 	ordersProcessed := prometheus.NewCounterVec(
 		prometheus.CounterOpts{
@@ -190,7 +194,9 @@ func NewProcessor(ctx context.Context) (*Processor, error) {
 	http.HandleFunc(healthPath, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"status":"healthy"}`))
+		if _, err := w.Write([]byte(`{"status":"healthy"}`)); err != nil {
+			log.Error().Err(err).Msg("failed to write health check response")
+		}
 	})
 
 	// Readiness check endpoint
@@ -199,11 +205,15 @@ func NewProcessor(ctx context.Context) (*Processor, error) {
 		// Check if required services are configured
 		if queueURL == "" || tableName == "" {
 			w.WriteHeader(http.StatusServiceUnavailable)
-			w.Write([]byte(`{"status":"not ready","reason":"missing configuration"}`))
+			if _, err := w.Write([]byte(`{"status":"not ready","reason":"missing configuration"}`)); err != nil {
+				log.Error().Err(err).Msg("failed to write readiness check response")
+			}
 			return
 		}
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"status":"ready"}`))
+		if _, err := w.Write([]byte(`{"status":"ready"}`)); err != nil {
+			log.Error().Err(err).Msg("failed to write readiness check response")
+		}
 	})
 
 	go func() {

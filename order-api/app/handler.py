@@ -1,7 +1,6 @@
 """Order handling business logic."""
 
 import json
-from typing import TYPE_CHECKING
 
 from botocore.client import BaseClient
 from botocore.exceptions import BotoCoreError, ClientError
@@ -10,10 +9,6 @@ from fastapi import HTTPException, status
 from app.deps import logger
 from app.schemas import OrderIn
 from config import settings
-
-if TYPE_CHECKING:
-    from mypy_boto3_dynamodb import DynamoDBClient
-    from mypy_boto3_sqs import SQSClient
 
 
 def handle_order(

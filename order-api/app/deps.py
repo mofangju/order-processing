@@ -4,7 +4,6 @@ import logging
 import sys
 import uuid
 from contextvars import ContextVar
-from typing import TYPE_CHECKING
 
 import boto3
 from botocore.client import BaseClient
@@ -12,9 +11,6 @@ from fastapi import Request
 
 from config import settings
 
-if TYPE_CHECKING:
-    from mypy_boto3_sqs import SQSClient
-    from mypy_boto3_dynamodb import DynamoDBClient
 
 # Request ID
 request_id_ctx: ContextVar[str] = ContextVar("request_id", default="")
