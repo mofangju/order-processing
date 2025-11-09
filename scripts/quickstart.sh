@@ -10,7 +10,6 @@ check_cmd() { command -v "$1" >/dev/null 2>&1 || { echo "Required command '$1' n
 check_cmd docker
 check_cmd terraform
 check_cmd aws
-check_cmd docker-compose || true
 
 echo "1/5 Starting LocalStack..."
 cd localstack
@@ -42,7 +41,7 @@ docker run -d --name order-api -p 8000:8000 \
 echo "4/5 Building and running order-processor..."
 cd ../order-processor
 go mod tidy
-docker build -t order-processor .
+docker build --no-cache -t order-processor .
 
 HOST_PORT=${HOST_PORT:-9091}
 docker rm -f order-processor 2>/dev/null || true

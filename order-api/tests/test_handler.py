@@ -117,7 +117,7 @@ def test_handle_order_sqs_message_format(mock_sqs_client, mock_ddb_client, order
             
             call_args = mock_sqs_client.send_message.call_args
             assert call_args[1]["QueueUrl"] == "https://sqs.example.com/queue"
-            assert call_args[1]["MessageGroupId"] == "orders"
+            assert call_args[1]["MessageGroupId"] == "user123"
             assert call_args[1]["MessageDeduplicationId"] == "order123"
             
             import json

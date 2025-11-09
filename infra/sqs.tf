@@ -2,9 +2,13 @@
 resource "aws_sqs_queue" "order_queue" {
   name                        = "${local.name_prefix}-order-queue.fifo"
   fifo_queue                  = true
-  content_based_deduplication = true
+  content_based_deduplication = false
   visibility_timeout_seconds  = var.sqs_visibility_timeout_seconds
   message_retention_seconds   = var.sqs_message_retention_seconds
+  redrive_policy = jsonencode({
+    deadLetterTargetArn = aws_sqs_queue.dlq.arn
+    maxReceiveCount     = var.sqs_max_receive_count
+  })
 
   tags = merge(
     local.common_tags,
@@ -26,14 +30,5 @@ resource "aws_sqs_queue" "dlq" {
       Name = "${local.name_prefix}-order-queue-dlq"
     }
   )
-}
-
-# Redrive policy to send failed messages to DLQ
-resource "aws_sqs_queue_redrive_policy" "order_queue" {
-  queue_url = aws_sqs_queue.order_queue.id
-  redrive_policy = jsonencode({
-    deadLetterTargetArn = aws_sqs_queue.dlq.arn
-    maxReceiveCount     = var.sqs_max_receive_count
-  })
 }
 

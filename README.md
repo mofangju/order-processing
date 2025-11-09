@@ -78,7 +78,7 @@ docker run -p 8000:8000 \
 # 1. Build
 cd ../order-processor
 go mod tidy
-docker build -t order-processor .
+docker build --no-cache -t order-processor .
 
 # 2. Export env vars
 export SQS_QUEUE_URL=$(cd ../infra && terraform output -raw sqs_queue_url)
@@ -128,9 +128,9 @@ curl http://localhost:9090/metrics | grep orders_processor
 - **Order Processor Health**: http://localhost:9090/health
 - **Order Processor Readiness**: http://localhost:9090/ready
 
-## 4 Unit Test
+## 4 Test
 
-### 4.1 Order API 
+### 4.1 Order API Unit Test
 ```bash
 cd order-api
 python -m venv venv
@@ -138,12 +138,21 @@ source .venv/bin/activate
 pytest -v
 ```
 
-### 4.2 Order Processor
+### 4.2 Order Processor Unit Test
 ```bash
 cd order-processor
 go mod tidy
 go build ./...
 go test ./...
+```
+
+### 4.3 Smoke Test
+```bash
+# Start infrastructure and services
+./scripts/quickstart.sh
+
+# Run smoke tests to verify deployment
+./scripts/smoke.sh
 ```
 
 ## 5 Follow Ups & Extensions

@@ -52,7 +52,7 @@ def handle_order(
                     "amount": order_in.amount,
                 }
             ),
-            MessageGroupId="orders",
+            MessageGroupId=user_id,
             MessageDeduplicationId=order_id,
         )
         logger.info(
