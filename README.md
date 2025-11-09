@@ -62,7 +62,7 @@ docker build -t order-api .
 
 # Run (with LocalStack env vars)
 export SQS_QUEUE_URL=$(cd ../infra && terraform output -raw sqs_queue_url)
-export DDB_TABLE=$(cd ../infra && terraform output -raw dynamodb_table)
+export DDB_TABLE=$(cd ../infra && terraform output -raw dynamodb_table_name)
 export AWS_ENDPOINT_URL=http://host.docker.internal:4566  # for Docker → LocalStack
 
 docker run -p 8000:8000 \
